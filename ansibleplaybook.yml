@@ -1,0 +1,90 @@
+---
+- name: Azure AD Automation using Ansible
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    client_id: "YOUR_CLIENT_ID"
+    client_secret: "YOUR_CLIENT_SECRET"
+    tenant_id: "YOUR_TENANT_ID"
+    graph_api_url: "https://graph.microsoft.com/v1.0"
+
+  tasks:
+    - name: Get Access Token
+      uri:
+        url: "https://login.microsoftonline.com/{{ tenant_id }}/oauth2/v2.0/token"
+        method: POST
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        body:
+          client_id: "{{ client_id }}"
+          client_secret: "{{ client_secret }}"
+          scope: "https://graph.microsoft.com/.default"
+          grant_type: "client_credentials"
+        body_format: form-urlencoded
+        return_content: yes
+      register: token_response
+
+    - name: Set access token fact
+      set_fact:
+        access_token: "{{ token_response.json.access_token }}"
+
+    - name: Check for User
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+      register: user_check
+
+    - name: Change Group Assignment
+      uri:
+        url: "{{ graph_api_url }}/groups/GROUP_ID/members/$ref"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          "@odata.id": "{{ graph_api_url }}/directoryObjects/{{ user_check.json.id }}"
+      when: user_check.status == 200
+
+    - name: Disable Account
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: false
+      when: user_check.status == 200
+
+    - name: Enable Account
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: true
+      when: user_check.status == 200
+
+    - name: Create User Account
+      uri:
+        url: "{{ graph_api_url }}/users"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: true
+          displayName: "New User"
+          mailNickname: "newuser"
+          userPrincipalName: "newuser@yourdomain.com"
+          passwordProfile:
+            forceChangePasswordNextSignIn: true
+            password: "P@ssw0rd!"
+      when: user_check.status == 404
