@@ -27,7 +27,7 @@
         return_content: yes
       register: token_response
       failed_when: token_response.status != 200
-      no_log: true  # Hide sensitive info
+      
 
     - name: Debug - Show Access Token Response
       debug:
