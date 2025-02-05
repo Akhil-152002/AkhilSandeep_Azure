@@ -7,7 +7,7 @@
   vars:
     client_id: "a9fc8ea1-86dc-411a-a4d8-7cb8e58966a7"
     client_secret:"{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
-    tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
+    tenant_id: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
     group_id: "YOUR_GROUP_ID"
     graph_api_url: "https://graph.microsoft.com/v1.0"
 
