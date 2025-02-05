@@ -46,5 +46,24 @@
     - name: Debug - Show User Check Result
       debug:
         msg: "User Check: {{ 'User Found' if user_check.status == 200 else 'User Not Found' }}"
+    - name: Enable Azure AD User Account
+      uri:
+        url: "{{ graph_api_url }}/users/{{ Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com }}"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          {
+            "accountEnabled": true
+          }
+        body_format: json
+        return_content: yes
+      register: enable_user_response
+
+- name: Debug - Show Enable User Account Response
+  debug:
+    msg: "Enable User Account: {{ 'Successful' if enable_user_response.status == 204 else 'Failed' }}"
+
 
    
