@@ -1,14 +1,116 @@
-- name: Check if a user exists in Azure AD
+---
+- name: Azure AD Automation using Ansible
   hosts: localhost
   connection: local
-  tasks:
-    - name: Get user details
-      azure.azcollection.azure_ad_user_info:
-        client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
-        secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
-        tenant: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
-        object_id: "user@example.com"
-      register: user_info
+  gather_facts: no
 
-    - debug:
-        var: user_info
+  vars:
+    client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
+    secret_id: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
+    tenant_id: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
+    group_id: "YOUR_GROUP_ID"
+    graph_api_url: "https://graph.microsoft.com/v1.0"
+
+  tasks:
+    - name: Get Access Token
+      uri:
+        url: "https://login.microsoftonline.com/{{ tenant_id }}/oauth2/v2.0/token"
+        method: POST
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        body:
+          client_id: "{{ client_id }}"
+          client_secret: "{{ client_secret }}"
+          scope: "https://graph.microsoft.com/.default"
+          grant_type: "client_credentials"
+        body_format: form-urlencoded
+        return_content: yes
+      register: token_response
+      failed_when: token_response.status != 200
+      
+
+    - name: Debug - Show Access Token Response
+      debug:
+        msg: "Access Token Retrieved Successfully!"
+      when: token_response.status == 200
+
+    - name: Set access token fact
+      set_fact:
+        access_token: "{{ token_response.json.access_token }}"
+
+    - name: Check for User
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+      register: user_check
+      failed_when: user_check.status not in [200, 404]
+
+    - name: Debug - Show User Check Response
+      debug:
+        var: user_check.json
+      when: user_check.status == 200
+
+    - name: Change Group Assignment
+      uri:
+        url: "{{ graph_api_url }}/groups/{{ group_id }}/members/$ref"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          "@odata.id": "{{ graph_api_url }}/directoryObjects/{{ user_check.json.id }}"
+        status_code: [204, 400]
+      when: user_check.status == 200
+
+    - name: Disable Account
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          accountEnabled: false
+        status_code: [200, 204]
+      when: user_check.status == 200
+
+    - name: Enable Account
+      uri:
+        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          accountEnabled: true
+        status_code: [200, 204]
+      when: user_check.status == 200
+
+    - name: Create User Account
+      uri:
+        url: "{{ graph_api_url }}/users"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          accountEnabled: true
+          displayName: "New User"
+          mailNickname: "newuser"
+          userPrincipalName: "newuser@yourdomain.com"
+          passwordProfile:
+            forceChangePasswordNextSignIn: true
+            password: "P@ssw0rd!"
+        status_code: 201
+      when: user_check.status == 404
+
+    - name: Debug - User Creation
+      debug:
+        msg: "User successfully created!"
+      when: user_check.status == 404
