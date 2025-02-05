@@ -73,7 +73,7 @@
 
     - name: Enable User if Disabled
       uri:
-        url: "{{ graph_api_url }}/users/newuser1@amitomar63gmail.onmicrosoft.com"
+        url: "{{ graph_api_url }}/users/{{ newuser1@amitomar63gmail.onmicrosoft.com }}?$select=accountEnabled"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
