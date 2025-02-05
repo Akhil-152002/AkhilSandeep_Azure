@@ -86,7 +86,7 @@
 
     - name: Check if User is Enabled
       uri:
-        url: "{{ graph_api_url }}/users/{{ Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com }}?$select=accountEnabled"
+        url: "{{ graph_api_url }}/users/{{ Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com | urlencode }}?$select=accountEnabled"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
