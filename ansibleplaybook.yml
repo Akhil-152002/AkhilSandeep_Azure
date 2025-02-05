@@ -7,7 +7,7 @@
   vars:
     client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
     client_secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
-    tenant_id: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
+    tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"   
     group_id: "YOUR_GROUP_ID"
     graph_api_url: "https://graph.microsoft.com/v1.0"
 
@@ -27,7 +27,6 @@
         return_content: yes
       register: token_response
       failed_when: token_response.status != 200
-      
 
     - name: Debug - Show Access Token Response
       debug:
