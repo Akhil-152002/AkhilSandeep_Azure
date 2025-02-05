@@ -29,6 +29,10 @@
         access_token: "{{ token_response.json.access_token }}"
       when: token_response.status == 200
 
+    - name: Debug - Show Access Token Status
+      debug:
+        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
+
     - name: Check for User
       uri:
         url: "{{ graph_api_url }}/users/Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com"
@@ -42,24 +46,5 @@
     - name: Debug - Show User Check Result
       debug:
         msg: "User Check: {{ 'User Found' if user_check.status == 200 else 'User Not Found' }}"
-    - name: Enable Azure AD User Account
-      uri:
-        url: "{{ graph_api_url }}/users/{{ Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com }}"
-        method: PATCH
-        headers:
-          Authorization: "Bearer {{ access_token }}"
-          Content-Type: "application/json"
-        body:
-          {
-            "accountEnabled": true
-          }
-        body_format: json
-        return_content: yes
-      register: enable_user_response
-
-- name: Debug - Show Enable User Account Response
-  debug:
-    msg: "Enable User Account: {{ 'Successful' if enable_user_response.status == 204 else 'Failed' }}"
-
 
    
