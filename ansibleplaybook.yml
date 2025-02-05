@@ -7,7 +7,7 @@
   vars:
     # Azure AD Application Registration Variables
     client_id: "195e8969-c853-47b4-83d0-36e044d83923"    
-    client_secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"  
+    client_secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
     tenant_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"  
     graph_api_url: "https://graph.microsoft.com/v1.0"  
     user_email: "Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com"  
