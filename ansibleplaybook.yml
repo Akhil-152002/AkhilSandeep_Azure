@@ -1,46 +1,14 @@
----
-- name: Azure AD Automation using Ansible
+- name: Check if a user exists in Azure AD
   hosts: localhost
   connection: local
-  gather_facts: no
-
-  vars:
-    client_id: "a9fc8ea1-86dc-411a-a4d8-7cb8e58966a7"
-    client_secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
-    tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
-    graph_api_url: "https://graph.microsoft.com/v1.0"
-
   tasks:
-    - name: Get Access Token
-      uri:
-        url: "https://login.microsoftonline.com/{{ tenant_id }}/oauth2/v2.0/token"
-        method: POST
-        headers:
-          Content-Type: "application/x-www-form-urlencoded"
-        body:
-          client_id: "{{ client_id }}"
-          client_secret: "{{ client_secret }}"
-          scope: "https://graph.microsoft.com/.default"
-          grant_type: "client_credentials"
-        body_format: form-urlencoded
-        return_content: yes
-      register: token_response
+    - name: Get user details
+      azure.azcollection.azure_ad_user_info:
+        client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
+        secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
+        tenant: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
+        object_id: "user@example.com"
+      register: user_info
 
-    - name: Set access token fact
-      set_fact:
-        access_token: "{{ token_response.json.access_token }}"
-
-    - name: Check for User
-      uri:
-        url: "{{ graph_api_url }}/users/testuser@yourdomain.com"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ access_token }}"
-          Content-Type: "application/json"
-      register: user_check
-    - name: Debug User Check Response
-      debug:
-        var: user_check
-
-
-   
+    - debug:
+        var: user_info
