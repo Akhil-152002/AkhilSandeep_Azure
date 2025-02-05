@@ -47,26 +47,4 @@
       debug:
         msg: "User Found!" if user_check.status == 200 else "User Not Found!"
 
-    - name: Create User if Not Exists
-      uri:
-        url: "{{ graph_api_url }}/users"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ access_token }}"
-          Content-Type: "application/json"
-        body:
-          accountEnabled: true
-          displayName: "AkhilSandeep4"
-          mailNickname: "AS4"
-          userPrincipalName: "AS4@amitomar63gmail.onmicrosoft.com"
-          passwordProfile:
-            forceChangePasswordNextSignIn: true
-            password: "TempPass@123"
-        body_format: json
-      register: user_creation
-      when: user_check.status == 404
-
-    - name: Debug - Show User Creation Result
-      debug:
-        msg: "User Created Successfully!" if user_creation.status in [200, 201] else "User Creation Failed!"
-      when: user_check.status == 404
+  
