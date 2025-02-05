@@ -56,9 +56,9 @@
           Content-Type: "application/json"
         body:
           accountEnabled: true
-          displayName: "Akhilsandeep2"
-          mailNickname: "AS2"
-          userPrincipalName: "AS2@amitomar63gmail.onmicrosoft.com"
+          displayName: "Akhilsandeep3"
+          mailNickname: "AS3"
+          userPrincipalName: "AS3@amitomar63gmail.onmicrosoft.com"
           passwordProfile:
             forceChangePasswordNextSignIn: true
             password: "TempPass@123"
