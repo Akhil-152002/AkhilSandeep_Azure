@@ -1,14 +1,25 @@
-- name: Check if a user exists in Azure AD
+---
+- name: Azure AD User Management
   hosts: localhost
-  connection: local
   tasks:
-    - name: Get user details
-      azure.azcollection.azure_ad_user_info:
-        client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
-        secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
-        tenant: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
-        object_id: "user@example.com"
-      register: user_info
+  
+    - name: Check if a user exists
+      azure.azcollection.azure_rm_aduser_info:
+        user_principal_name: "testuser@yourdomain.com"
 
-    - debug:
-        var: user_info
+    - name: Create a new user
+      azure.azcollection.azure_rm_aduser:
+        user_principal_name: "newuser@yourdomain.com"
+        display_name: "New User"
+        password: "SecurePass123!"
+        account_enabled: yes
+
+    - name: Disable a user account
+      azure.azcollection.azure_rm_aduser:
+        user_principal_name: "user-to-disable@yourdomain.com"
+        account_enabled: no
+
+    - name: Enable a user account
+      azure.azcollection.azure_rm_aduser:
+        user_principal_name: "user-to-enable@yourdomain.com"
+        account_enabled: yes
