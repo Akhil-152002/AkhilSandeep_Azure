@@ -38,5 +38,9 @@
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
       register: user_check
+    - name: Debug User Check Response
+      debug:
+        var: user_check
+
 
    
