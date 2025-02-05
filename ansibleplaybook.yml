@@ -5,7 +5,7 @@
   gather_facts: no
 
   vars:
-    client_id: "a9fc8ea1-86dc-411a-a4d8-7cb8e58966a7"
+    client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
     client_secret:"{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
     tenant_id: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
     group_id: "YOUR_GROUP_ID"
