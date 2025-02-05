@@ -5,9 +5,9 @@
   gather_facts: no
 
   vars:
-    client_id: "{{lookup('env', 'AZURE_CLIENT_ID')}}"
-    client_secret:"{{lookup('env', 'AZURE_CLIENT_SECRET')}}"
-    tenant_id: "{{lookup('env', 'AZURE_TENANT_ID')}}"
+    client_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
+    client_secret: "{{ lookup('env', 'AZURE_CLIENT_SECRET') }}"
+    tenant_id: "{{ lookup('env', 'AZURE_TENANT_ID') }}"
     group_id: "YOUR_GROUP_ID"
     graph_api_url: "https://graph.microsoft.com/v1.0"
 
