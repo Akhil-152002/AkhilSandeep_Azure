@@ -29,10 +29,6 @@
         access_token: "{{ token_response.json.access_token }}"
       when: token_response.status == 200
 
-    - name: Debug - Show Access Token Status
-      debug:
-        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
-
     - name: Check for User
       uri:
         url: "{{ graph_api_url }}/users/Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com"
