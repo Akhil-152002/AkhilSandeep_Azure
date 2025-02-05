@@ -24,6 +24,7 @@
       register: token_response
       failed_when: token_response.status != 200
       
+
     - name: Debug - Show Access Token Response
       debug:
         msg: "Access Token Retrieved Successfully!"
@@ -42,9 +43,3 @@
           Content-Type: "application/json"
       register: user_check
       failed_when: user_check.status not in [200, 404]
-
-    - name: Debug - Show User Check Result
-      debug:
-        msg: "User Found!" if user_check.status == 200 else "User Not Found!"
-
-  
