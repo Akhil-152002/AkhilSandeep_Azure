@@ -47,7 +47,7 @@
       debug:
         msg: "User Check: {{ 'User Found' if user_check.status == 200 else 'User Not Found' }}"
 
-    - name: Add new user
+     - name: Add new user
       uri:
         url: "{{ graph_api_url }}/users"
         method: POST
@@ -58,7 +58,7 @@
           {
             "accountEnabled": true,
             "displayName": "AS4",
-            "mailNickname": "AS2",
+            "mailNickname": "newuser1",
             "userPrincipalName": "newuser1@amitomar63gmail.onmicrosoft.com",
             "passwordProfile": {
               "forceChangePasswordNextSignIn": true,
@@ -68,15 +68,16 @@
         body_format: json
         return_content: yes
       register: new_user_creation
+      failed_when: false  # Disable failure on status code, handle logic based on the response content
 
     - name: Debug - Show New User Creation Result
       debug:
-        msg: "New User Creation: {{ 'Successful' if new_user_creation.status == 201 else 'Failed' }}"
+        msg: "New User Creation: {{ 'Successful' if new_user_creation.json.id is defined else 'Failed' }}"
 
     - name: Show details of newly created user
       debug:
         msg: "New User Details: {{ new_user_creation.json }}"  
-      when: new_user_creation.status == 201
+      when: new_user_creation.json.id is defined
 
 
    
