@@ -82,7 +82,7 @@
           accountEnabled: true
         body_format: json
       register: user_enable
-      when: user_check.status == 200 and not user_check.json.accountEnabled
+      when: user_check.status == 200 and not user_check.json.get('accountEnabled', true)
 
 
    
