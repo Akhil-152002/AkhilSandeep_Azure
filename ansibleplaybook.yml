@@ -24,7 +24,6 @@
       register: token_response
       failed_when: token_response.status != 200
       
-
     - name: Debug - Show Access Token Response
       debug:
         msg: "Access Token Retrieved Successfully!"
@@ -44,4 +43,12 @@
       register: user_check
       failed_when: user_check.status not in [200, 404]
 
-    
+    - name: Show User Check Result
+      debug:
+        msg: "User Found Successfully!"
+      when: user_check.status == 200
+
+    - name: Show User Not Found Result
+      debug:
+        msg: "User Not Found! Check if the user exists in Azure AD."
+      when: user_check.status == 404
