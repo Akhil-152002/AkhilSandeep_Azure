@@ -71,5 +71,18 @@
         msg: "User Creation: {{ 'Successful' if user_creation.status in [200, 201] else 'Unsuccessful' }}"
       when: user_check.status == 404
 
+    - name: Enable User if Disabled
+      uri:
+        url: "{{ graph_api_url }}/users/newuser1@amitomar63gmail.onmicrosoft.com"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: true
+        body_format: json
+      register: user_enable
+      when: user_check.status == 200 and not user_check.json.accountEnabled
+
 
    
