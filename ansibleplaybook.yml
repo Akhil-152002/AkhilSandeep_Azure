@@ -47,24 +47,24 @@
       debug:
         msg: "User Check: {{ 'User Found' if user_check.status == 200 else 'User Not Found' }}"
     
-    # - name: Create User if Not Exists
-    #   uri:
-    #     url: "{{ graph_api_url }}/users"
-    #     method: POST
-    #     headers:
-    #       Authorization: "Bearer {{ access_token }}"
-    #       Content-Type: "application/json"
-    #     body:
-    #       accountEnabled: true
-    #       displayName: "Akhilsandeep3"
-    #       mailNickname: "AS3"
-    #       userPrincipalName: "AS3@amitomar63gmail.onmicrosoft.com"
-    #       passwordProfile:
-    #         forceChangePasswordNextSignIn: true
-    #         password: "TempPass@123"
-    #     body_format: json
-    #   register: user_creation
-    #   when: user_check.status == 404
+    - name: Create User if Not Exists
+      uri:
+        url: "{{ graph_api_url }}/users"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: true
+          displayName: "Akhilsandeep3"
+          mailNickname: "AS3"
+          userPrincipalName: "AS3@amitomar63gmail.onmicrosoft.com"
+          passwordProfile:
+            forceChangePasswordNextSignIn: true
+            password: "TempPass@123"
+        body_format: json
+      register: user_creation
+      when: user_check.status == 404
 
     # - name: Debug - Show User Creation Status
     #   debug:
