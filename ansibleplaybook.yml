@@ -66,10 +66,10 @@
       register: user_creation
       when: user_check.status == 404
 
-    # - name: Debug - Show User Creation Status
-    #   debug:
-    #     msg: "User Creation: {{ 'Successful' if user_creation.status in [200, 201] else 'Unsuccessful' }}"
-    #   when: user_check.status == 404
+    - name: Debug - Show User Creation Status
+      debug:
+        msg: "User Creation: {{ 'Successful' if user_creation.status in [200, 201] else 'Unsuccessful' }}"
+      when: user_check.status == 404
 
     - name: Enable User if Disabled
       uri:
