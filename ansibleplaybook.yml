@@ -70,22 +70,34 @@
         msg: "User Creation: {{ 'Successful' if user_creation.status in [200, 201] else 'Unsuccessful' }}"
       when: user_check.status == 404
 
-    - name: Enable or Disable User Account
+    # - name: Enable or Disable User Account
+    #   uri:
+    #     url: "{{ graph_api_url }}/users/{{exmp}}"
+    #     method: PATCH
+    #     headers:
+    #       Authorization: "Bearer {{ access_token }}"
+    #       Content-Type: "application/json"
+    #     body:
+    #       accountEnabled: "{{ enable_account }}"
+    #     body_format: json
+    #   register: account_update
+    #   failed_when: account_update.status not in [200, 204]
+
+    # - name: Debug - Show Account Enable/Disable Status
+    #   debug:
+    #     msg: "User account has been {{ 'enabled' if enable_account else 'disabled' }} successfully."
+
+    - name: Enable User Account
       uri:
-        url: "{{ graph_api_url }}/users/{{exmp}}"
+        url: "{{ graph_api_url }}/users/{{ exmp }}"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: "{{ enable_account }}"
+          accountEnabled: true
         body_format: json
-      register: account_update
-      failed_when: account_update.status not in [200, 204]
-
-    - name: Debug - Show Account Enable/Disable Status
-      debug:
-        msg: "User account has been {{ 'enabled' if enable_account else 'disabled' }} successfully."
+      register: user_enable
 
 
 
