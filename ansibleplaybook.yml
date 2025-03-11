@@ -82,22 +82,35 @@
     #     body_format: json
     #   register: account_update
     #   failed_when: account_update.status not in [200, 204]
-
-    # - name: Debug - Show Account Enable/Disable Status
-    #   debug:
-    #     msg: "User account has been {{ 'enabled' if enable_account else 'disabled' }} successfully."
-
-    - name: Enable User Account
+    - name: Get user ID
       uri:
-        url: "{{ graph_api_url }}/users/{{ exmp }}"
+        url: "{{ graph_api_url }}/users?$filter=userPrincipalName eq '{{exmp}}'"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+      register: user_lookup
+      failed_when: false
+
+    - name: Enable or Disable User Account by ID
+      uri:
+        url: "{{ graph_api_url }}/users/{{ user_lookup.json.value[0].id }}"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: true
+          accountEnabled: "{{ enable_account }}"
         body_format: json
-      register: user_enable
+      register: account_update
+      failed_when: account_update.status not in [200, 204]
+      when: user_lookup.json.value | length > 0
+
+    # - name: Debug - Show Account Enable/Disable Status
+    #   debug:
+    #     msg: "User account has been {{ 'enabled' if enable_account else 'disabled' }} successfully."
+
+
 
 
 
