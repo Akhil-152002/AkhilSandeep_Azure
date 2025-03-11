@@ -82,15 +82,29 @@
     #     body_format: json
     #   register: account_update
     #   failed_when: account_update.status not in [200, 204]
-    - name: Get user ID
+
+    - name: Verify target user exists
       uri:
-        url: "{{ graph_api_url }}/users?$filter=userPrincipalName eq '{{exmp}}'"
+        url: "{{ graph_api_url }}/users/{{exmp}}"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
-      register: user_lookup
+      register: user_verify
       failed_when: false
+      
+    - name: Debug - Show user verify result
+      debug:
+        var: user_verify
+        - name: Get user ID
+          uri:
+            url: "{{ graph_api_url }}/users?$filter=userPrincipalName eq '{{exmp}}'"
+            method: GET
+            headers:
+              Authorization: "Bearer {{ access_token }}"
+              Content-Type: "application/json"
+          register: user_lookup
+          failed_when: false
 
     - name: Enable or Disable User Account by ID
       uri:
