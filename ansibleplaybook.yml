@@ -89,7 +89,8 @@
           accountEnabled: true
         body_format: json
       register: user_enable
-      when: user_check.status == 200 and not user_check.json.get('accountEnabled', true)
+      # when: when: user_check.status == 200 and user_check.json.accountEnabled == false
+
 
     # - name: Check if User is Enabled
     #   uri:
