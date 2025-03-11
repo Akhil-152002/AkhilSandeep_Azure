@@ -97,16 +97,16 @@
     - name: Enable or Disable User Account
       uri:
         url: "{{ graph_api_url }}/users/{{exmp}}"
-      method: PATCH
-      headers:
-        Authorization: "Bearer {{ access_token }}"
-        Content-Type: "application/json"
-      body:
-        accountEnabled: "{{ enable_account }}"
-      body_format: json
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body:
+          accountEnabled: "{{ enable_account }}"
+        body_format: json
       register: account_update
       failed_when: false  # Don't fail so we can see the actual response
     
     - name: Debug - Show account update response
       debug:
-      var: account_update
+        var: account_update
