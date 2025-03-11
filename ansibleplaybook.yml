@@ -7,7 +7,7 @@
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
     enable_account: true  # Set to false to disable the account
-    exmp: "AS@amitomar63gmail.onmicrosoft.com"
+    exmp: "supra@amitomar63gmail.onmicrosoft.com"
 
   tasks:
     - name: Get Access Token
