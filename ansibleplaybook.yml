@@ -94,16 +94,19 @@
       register: user_lookup
       failed_when: false
 
-    - name: Enable or Disable User Account by ID
+    - name: Enable or Disable User Account
       uri:
-        url: "{{ graph_api_url }}/users/{{ user_lookup.json.value[0].id }}"
-        method: PATCH
-        headers:
-          Authorization: "Bearer {{ access_token }}"
-          Content-Type: "application/json"
-        body:
-          accountEnabled: "{{ enable_account }}"
-        body_format: json
+        url: "{{ graph_api_url }}/users/{{exmp}}"
+      method: PATCH
+      headers:
+        Authorization: "Bearer {{ access_token }}"
+        Content-Type: "application/json"
+      body:
+        accountEnabled: "{{ enable_account }}"
+      body_format: json
       register: account_update
-      failed_when: account_update.status not in [200, 204]
-      when: user_lookup.json.value | length > 0
+      failed_when: false  # Don't fail so we can see the actual response
+    
+    - name: Debug - Show account update response
+      debug:
+      var: account_update
