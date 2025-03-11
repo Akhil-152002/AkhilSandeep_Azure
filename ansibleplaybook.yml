@@ -37,7 +37,7 @@
 
     - name: Check for User
       uri:
-        url: "{{ graph_api_url }}/users/Jayanta.Banerjee@amitomar63gmail.onmicrosoft.com"
+        url: "{{ graph_api_url }}/users/supra@amitomar63gmail.onmicrosoft.com"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
