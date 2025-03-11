@@ -6,8 +6,11 @@
 
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
-    enable_account: true  # Set to false to disable the account
+    enable_account: false  # Set to false to disable the account
     exmp: "supra@amitomar63gmail.onmicrosoft.com"
+    tenant_id: "{{ azure_tenant_id }}"
+    client_id: "{{ azure_client_id }}"
+    client_secret: "{{ azure_client_secret }}"
 
   tasks:
     - name: Get Access Token
