@@ -8,9 +8,9 @@
     graph_api_url: "https://graph.microsoft.com/v1.0"
     enable_account: "{{ tf | bool }}"  # Set to false to disable the account
     exmp: "{{user_id}}"
-    tenant_id: "{{ azure_tenant_id }}"
-    client_id: "{{ azure_client_id }}"
-    client_secret: "{{ azure_client_secret }}"
+    tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
+    client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
+    client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
 
   tasks:
     - name: Get Access Token
