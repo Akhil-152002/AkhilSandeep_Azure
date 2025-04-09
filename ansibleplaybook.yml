@@ -6,7 +6,7 @@
 
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
-    enable_account: "{{ tf | bool }}"  # Boolean value for enabling/disabling the account
+    enable_account: "{{ tf | bool }}"
     exmp: "{{ user_id }}"
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
@@ -15,7 +15,6 @@
     service_now_instance: "{{ service_now_instance }}"
     service_now_username: "{{ service_now_username }}"
     service_now_password: "{{ service_now_password }}"
- 
 
   tasks:
     - name: Get Access Token
@@ -65,14 +64,15 @@
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: "{{ enable_account | lower }}"  # Fix: Ensure boolean is interpreted correctly
+          accountEnabled: "{{ enable_account | lower }}"
         body_format: json
       register: account_update
-      failed_when: false  # Don't fail so we can see the actual response
+      failed_when: false
 
     - name: Debug - Show account update response
       debug:
         var: account_update
+
     - name: Get Incident Sys_ID from ServiceNow
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/incident?sysparm_query=number={{ INCIDENT_NUMBER }}"
@@ -83,10 +83,16 @@
           Content-Type: "application/json"
       register: incident_info
       delegate_to: localhost
+
+    - name: Debug - Show ServiceNow Incident Info
+      debug:
+        var: incident_info.json.result
+
     - name: Set Incident Sys_ID Fact
       set_fact:
         incident_sys_id: "{{ incident_info.json.result[0].sys_id }}"
       when: incident_info.json.result | length > 0
+
     - name: Update SNOW Ticket - Issue Resolved
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/incident/{{ incident_sys_id }}"
@@ -103,9 +109,12 @@
             "close_notes": "Disk space optimized by stopping a high-consuming process."
           }
         status_code: [200, 201, 403, 405]
-      when: issue_resolved | default(false) | bool and incident_sys_id is defined
+      when:
+        - issue_resolved | default(false) | bool
+        - incident_info.json.result | length > 0
       register: sn_response
       delegate_to: localhost
+
     - name: Update SNOW Ticket - Manual Escalation
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/incident/{{ incident_sys_id }}"
@@ -121,6 +130,8 @@
             "work_notes": "Automation failed. Assigned to manual queue."
           }
         status_code: [200, 405]
-      when: issue_resolved is not defined or not issue_resolved | bool and incident_sys_id is defined
+      when:
+        - incident_info.json.result | length > 0
+        - issue_resolved is not defined or not issue_resolved | bool
       register: sn_escalation_response
       delegate_to: localhost
