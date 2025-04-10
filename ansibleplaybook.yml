@@ -1,24 +1,46 @@
 ---
-- name: Azure AD Automation using Ansible
+- name: Azure AD Automation and ServiceNow Update
   hosts: localhost
   connection: local
   gather_facts: no
 
   vars:
+    # Azure AD Variables
     graph_api_url: "https://graph.microsoft.com/v1.0"
-    enable_account: "{{ tf | bool }}"
-    exmp: "{{ user_id }}"
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
-    INCIDENT_NUMBER: "{{ INCIDENT_NUMBER }}"
-    service_now_instance: "{{ service_now_instance }}"
-    service_now_username: "{{ service_now_username }}"
-    service_now_password: "{{ service_now_password }}"
-    requested_sys_id: "{{ awx_webhook_payload.sys_id }}"
+    user_id: "AS@amitomar63gmail.onmicrosoft.com"
+    enable_account: true  # Set to false to disable
+
+    # ServiceNow Variables
+    service_now_instance: "dev247928.service-now.com"
+    service_now_username: "admin"
+    service_now_password: "%ml4Vs9RXE/s"
+    ticket_type: "incident"  # or "request"
+    requested_sys_id: "107d22668310a210d081f696feaad302"
+
+    # Ticket Update Data
+    short_description: "Updated Ticket Description"
+    description: "Updated ticket details."
+    priority: "3"
+    impact: "2"
+    urgency: "2"
+    state: "2"
+    assigned_to: "admin"
+    assignment_group: "IT Support"
+    comments: "Ticket is being worked on."
+    work_notes: "Engineer started troubleshooting."
+    request_state: "approved"
+    stage: "fulfilling"
+    approval: "approved"
+    category: "network"
+    service_offering: "IT Helpdesk"
+    contact_type: "email"
 
   tasks:
-    - name: Get Access Token
+
+    - name: Get Access Token from Microsoft
       uri:
         url: "https://login.microsoftonline.com/{{ tenant_id }}/oauth2/v2.0/token"
         method: POST
@@ -34,18 +56,13 @@
       register: token_response
       failed_when: token_response.status != 200
 
-    - name: Set access token fact
+    - name: Set access_token variable
       set_fact:
         access_token: "{{ token_response.json.access_token }}"
-      when: token_response.status == 200
 
-    - name: Debug - Show Access Token Status
-      debug:
-        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
-
-    - name: Verify target user exists
+    - name: Verify if user exists in Azure AD
       uri:
-        url: "{{ graph_api_url }}/users/{{ exmp }}"
+        url: "{{ graph_api_url }}/users/{{ user_id }}"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
@@ -53,32 +70,24 @@
       register: user_verify
       failed_when: false
 
-    - name: Debug - Show user verify result
-      debug:
-        var: user_verify
-
-    - name: Enable or Disable User Account
+    - name: Enable or Disable the Azure AD User Account
       uri:
-        url: "{{ graph_api_url }}/users/{{ exmp }}"
+        url: "{{ graph_api_url }}/users/{{ user_id }}"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: "{{ enable_account | lower }}"
+          accountEnabled: "{{ enable_account | bool }}"
         body_format: json
       register: account_update
       failed_when: false
 
-    - name: Debug - Show account update response
-      debug:
-        var: account_update
-
-    - name: Determine table based on ticket_type
+    - name: Set the table name based on ticket type
       set_fact:
         table_name: "{{ 'incident' if ticket_type == 'incident' else 'sc_request' }}"
 
-    - name: Prepare request body for update
+    - name: Build request body for ServiceNow update
       set_fact:
         request_body: >-
           {%- if ticket_type == 'incident' -%}
@@ -110,8 +119,8 @@
           }
           {%- endif -%}
 
-    - name: Update Incident or Request in ServiceNow
-      ansible.builtin.uri:
+    - name: Update ServiceNow Ticket
+      uri:
         url: "https://{{ service_now_instance }}/api/now/table/{{ table_name }}/{{ requested_sys_id }}"
         method: PATCH
         user: "{{ service_now_username }}"
@@ -124,6 +133,6 @@
         status_code: [200, 204]
       register: response
 
-    - name: Show Updated Ticket Details
+    - name: Show final response from ServiceNow
       debug:
-        msg: "{{ response.json }}"
+        var: response.json
