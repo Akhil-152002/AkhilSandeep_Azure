@@ -73,10 +73,15 @@
         var: account_update
 
 # --- ServiceNow Section ---
+
+---
 - name: Update SC Task State to Completed
   hosts: localhost
   connection: local
   gather_facts: no
+
+    # State values for SC Task
+    state_completed: "3"  # Assuming "3" corresponds to "Completed" in ServiceNow
 
   tasks:
     - name: Search for SC Task using sctask_id
@@ -105,7 +110,7 @@
       set_fact:
         request_body: >
           {
-            "state": "{{ closed_complete }}"
+            "state": "{{ state_completed }}"
           }
 
     - name: Update SC Task state to Completed in ServiceNow
@@ -126,3 +131,5 @@
     - name: Debug - Show Update Response
       debug:
         msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
+
+
