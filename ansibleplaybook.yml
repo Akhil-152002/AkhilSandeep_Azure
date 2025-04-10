@@ -1,22 +1,17 @@
 ---
-- name: Azure AD Automation using Ansible
+- name: Azure AD User Account Management
   hosts: localhost
   connection: local
   gather_facts: no
-
+ 
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
-    enable_account: "{{ tf | bool }}"
-    exmp: "{{ user_id }}"
+    enable_account: "{{ enable_account | bool }}"  # Convert string 'true'/'false' to boolean
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
-    INCIDENT_NUMBER: "{{ INCIDENT_NUMBER }}"
-    service_now_instance: "{{ service_now_instance }}"
-    service_now_username: "{{ service_now_username }}"
-    service_now_password: "{{ service_now_password }}"
-    requested_sys_id: "{{ awx_webhook_payload.sys_id }}"
-
+    user_principal_name: "{{ user_principal_name }}"
+ 
   tasks:
     - name: Get Access Token
       uri:
@@ -33,121 +28,54 @@
         return_content: yes
       register: token_response
       failed_when: token_response.status != 200
-
+ 
     - name: Set access token fact
       set_fact:
         access_token: "{{ token_response.json.access_token }}"
-      when: token_response.status == 200
-
-    - name: Debug - Show Access Token Status
+ 
+    - name: Debug - Show Access Token Retrieval Status
       debug:
-        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
-
-    - name: Verify target user exists
+        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Failed' }}"
+ 
+    - name: Check if user already exists
       uri:
-        url: "{{ graph_api_url }}/users/{{ exmp }}"
+        url: "{{ graph_api_url }}/users?$filter=userPrincipalName%20eq%20'{{ user_principal_name }}'"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
-      register: user_verify
-      failed_when: false
-
-    - name: Debug - Show user verify result
+      register: user_lookup
+      failed_when: user_lookup.status == 404
+      changed_when: false
+ 
+    - name: Fail if User Doesn't Exist
+      fail:
+        msg: "User {{ user_principal_name }} does not exist in Azure AD."
+      when: user_lookup.status == 404
+ 
+    - name: Extract User ID
+      set_fact:
+        user_id: "{{ user_lookup.json.value[0].id }}"
+ 
+    - name: Debug - Show Retrieved User ID
       debug:
-        var: user_verify
-
+        msg: "User {{ user_principal_name }} found with ID: {{ user_id }}"
+ 
     - name: Enable or Disable User Account
       uri:
-        url: "{{ graph_api_url }}/users/{{ exmp }}"
+        url: "{{ graph_api_url }}/users/{{ user_id }}"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: "{{ enable_account | lower }}"
+          accountEnabled: "{{ enable_account }}"
         body_format: json
       register: account_update
-      failed_when: false
-
-    - name: Debug - Show account update response
+      failed_when: account_update.status not in [200, 204]
+      changed_when: account_update.status == 200
+ 
+    - name: Debug - Show Account Update Response
       debug:
-        var: account_update
-
-    - name: Get Incident Sys_ID from ServiceNow
-      uri:
-        url: "https://{{ service_now_instance }}/api/now/table/incident?sysparm_query=number={{ INCIDENT_NUMBER }}"
-        method: GET
-        force_basic_auth: yes
-        headers:
-          Authorization: "Basic {{ (service_now_username + ':' + service_now_password) | b64encode }}"
-          Content-Type: "application/json"
-      register: incident_info
-      delegate_to: localhost
-
-    - name: Debug - Show ServiceNow Incident Info
-      debug:
-        var: incident_info.json.result
-
-    - name: Set Incident Sys_ID Fact
-      set_fact:
-        incident_sys_id: "{{ incident_info.json.result[0].sys_id }}"
-      when: incident_info.json.result | length > 0
-
-    - name: Update SNOW Ticket - Issue Resolved
-      uri:
-        url: "https://{{ service_now_instance }}/api/now/table/incident/{{ incident_sys_id }}"
-        method: PATCH
-        force_basic_auth: yes
-        headers:
-          Authorization: "Basic {{ (service_now_username + ':' + service_now_password) | b64encode }}"
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          {
-            "state": "7",
-            "close_code": "Solution Provided",
-            "close_notes": "Disk space optimized by stopping a high-consuming process."
-          }
-        status_code: [200, 201, 403, 405]
-      when:
-        - issue_resolved | default(false) | bool
-        - incident_info.json.result | length > 0
-      register: sn_response
-      delegate_to: localhost
-
-    - name: Update SNOW Ticket - Manual Escalation
-      uri:
-        url: "https://{{ service_now_instance }}/api/now/table/incident/{{ incident_sys_id }}"
-        method: PATCH
-        force_basic_auth: yes
-        headers:
-          Authorization: "Basic {{ (service_now_username + ':' + service_now_password) | b64encode }}"
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          {
-            "state": "4",
-            "work_notes": "Automation failed. Assigned to manual queue."
-          }
-        status_code: [200, 405]
-      when:
-        - incident_info.json.result | length > 0
-        - issue_resolved is not defined or not issue_resolved | bool
-      register: sn_escalation_response
-      delegate_to: localhost
-
-    - name: Update ServiceNow Ticket with Correlation ID
-      uri:
-        url: "{{ service_now_instance }}/api/now/table/incident/{{ requested_sys_id }}"
-        method: PATCH
-        headers:
-          Accept: "application/json"
-          Content-Type: "application/json"
-        auth:
-          - "{{ service_now_username }}"
-          - "{{ service_now_password }}"
-        body:
-          correlation_id: "true"
-        body_format: json
-        status_code: [200, 204]
+        msg: "User {{ user_principal_name }} account status updated to {{ enable_account }
+        
