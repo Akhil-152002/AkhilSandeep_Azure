@@ -139,14 +139,14 @@
 
     - name: Update ServiceNow Ticket with Correlation ID
       uri:
-        url: "{{ servicenow_instance }}/api/now/table/incident/{{ requested_sys_id }}"
+        url: "{{ service_now_instance }}/api/now/table/incident/{{ requested_sys_id }}"
         method: PATCH
         headers:
           Accept: "application/json"
           Content-Type: "application/json"
         auth:
-          - "{{ servicenow_username }}"
-          - "{{ servicenow_password }}"
+          - "{{ service_now_username }}"
+          - "{{ service_now_password }}"
         body:
           correlation_id: "true"
         body_format: json
