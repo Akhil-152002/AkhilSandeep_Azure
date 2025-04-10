@@ -1,26 +1,23 @@
 ---
-- name: Azure AD Automation and ServiceNow Update
+- name: Azure AD Automation using Ansible
   hosts: localhost
   connection: local
   gather_facts: no
 
   vars:
-    # Azure AD Variables
     graph_api_url: "https://graph.microsoft.com/v1.0"
+    enable_account: "{{ tf | bool }}"
+    exmp: "{{ user_id }}"
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
-    user_id: "AS@amitomar63gmail.onmicrosoft.com"
-    enable_account: true  # Set to false to disable
+    INCIDENT_NUMBER: "{{ INCIDENT_NUMBER }}"
+    service_now_instance: "{{ service_now_instance }}"
+    service_now_username: "{{ service_now_username }}"
+    service_now_password: "{{ service_now_password }}"
 
-    # ServiceNow Variables
-    service_now_instance: "dev247928.service-now.com"
-    service_now_username: "admin"
-    service_now_password: "%ml4Vs9RXE/s"
+    # ServiceNow ticket info
     ticket_type: "incident"  # or "request"
-    requested_sys_id: "107d22668310a210d081f696feaad302"
-
-    # Ticket Update Data
     short_description: "Updated Ticket Description"
     description: "Updated ticket details."
     priority: "3"
@@ -39,8 +36,7 @@
     contact_type: "email"
 
   tasks:
-
-    - name: Get Access Token from Microsoft
+    - name: Get Access Token
       uri:
         url: "https://login.microsoftonline.com/{{ tenant_id }}/oauth2/v2.0/token"
         method: POST
@@ -56,13 +52,17 @@
       register: token_response
       failed_when: token_response.status != 200
 
-    - name: Set access_token variable
+    - name: Set access token fact
       set_fact:
         access_token: "{{ token_response.json.access_token }}"
 
-    - name: Verify if user exists in Azure AD
+    - name: Debug - Show Access Token Status
+      debug:
+        msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
+
+    - name: Verify target user exists
       uri:
-        url: "{{ graph_api_url }}/users/{{ user_id }}"
+        url: "{{ graph_api_url }}/users/{{ exmp }}"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token }}"
@@ -70,24 +70,56 @@
       register: user_verify
       failed_when: false
 
-    - name: Enable or Disable the Azure AD User Account
+    - name: Debug - Show user verify result
+      debug:
+        var: user_verify
+
+    - name: Enable or Disable User Account
       uri:
-        url: "{{ graph_api_url }}/users/{{ user_id }}"
+        url: "{{ graph_api_url }}/users/{{ exmp }}"
         method: PATCH
         headers:
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
         body:
-          accountEnabled: "{{ enable_account | bool }}"
+          accountEnabled: "{{ enable_account | lower }}"
         body_format: json
       register: account_update
       failed_when: false
 
-    - name: Set the table name based on ticket type
+    - name: Debug - Show account update response
+      debug:
+        var: account_update
+
+    # --- ServiceNow Section ---
+
+    - name: Determine table based on ticket_type
       set_fact:
         table_name: "{{ 'incident' if ticket_type == 'incident' else 'sc_request' }}"
 
-    - name: Build request body for ServiceNow update
+    - name: Search for ticket using short_description
+      uri:
+        url: "https://{{ service_now_instance }}/api/now/table/{{ table_name }}?sysparm_query=short_description={{ short_description | urlencode }}&sysparm_limit=1"
+        method: GET
+        user: "{{ service_now_username }}"
+        password: "{{ service_now_password }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        return_content: yes
+      register: incident_search
+      failed_when: incident_search.status not in [200]
+
+    - name: Debug - Search results
+      debug:
+        var: incident_search.json.result
+
+    - name: Set sys_id from search result
+      set_fact:
+        requested_sys_id: "{{ incident_search.json.result[0].sys_id }}"
+      when: incident_search.json.result | length > 0
+
+    - name: Prepare request body for update
       set_fact:
         request_body: >-
           {%- if ticket_type == 'incident' -%}
@@ -119,7 +151,7 @@
           }
           {%- endif -%}
 
-    - name: Update ServiceNow Ticket
+    - name: Update Incident or Request in ServiceNow
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/{{ table_name }}/{{ requested_sys_id }}"
         method: PATCH
@@ -131,8 +163,9 @@
         body_format: json
         body: "{{ request_body }}"
         status_code: [200, 204]
+      when: requested_sys_id is defined
       register: response
 
-    - name: Show final response from ServiceNow
+    - name: Show Updated Ticket Details
       debug:
-        var: response.json
+        msg: "{{ response.json if response.json is defined else 'Update Successful (No body returned)' }}"
