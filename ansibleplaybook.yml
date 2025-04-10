@@ -13,7 +13,7 @@
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
     service_now_instance: "{{ service_now_instance }}"
     service_now_username: "{{ service_now_username }}"
-    service_now_password: "{{ service_now_password }}" 
+    service_now_password: "{{ service_now_password }}"
     sctask_id: "{{ sctask_id }}"  # Provide the SC Task ID here
 
   tasks:
@@ -72,15 +72,13 @@
       debug:
         var: account_update
 
-# --- ServiceNow Section ---
-
 ---
 - name: Update SC Task State to Completed
   hosts: localhost
   connection: local
   gather_facts: no
 
-    # State values for SC Task
+  vars:
     state_completed: "3"  # Assuming "3" corresponds to "Completed" in ServiceNow
 
   tasks:
@@ -131,5 +129,3 @@
     - name: Debug - Show Update Response
       debug:
         msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
-
-
