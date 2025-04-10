@@ -135,3 +135,18 @@
         - issue_resolved is not defined or not issue_resolved | bool
       register: sn_escalation_response
       delegate_to: localhost
+
+    - name: Update ServiceNow Ticket with Correlation ID
+      uri:
+        url: "{{ servicenow_instance }}/api/now/table/incident/{{ requested_sys_id }}"
+        method: PATCH
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        auth:
+          - "{{ servicenow_username }}"
+          - "{{ servicenow_password }}"
+        body:
+          correlation_id: "true"
+        body_format: json
+        status_code: [200, 204]
