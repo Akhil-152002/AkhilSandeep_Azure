@@ -1,5 +1,5 @@
 ---
-- name: Azure AD Automation using Ansible
+- name: Azure AD Automation and SC Task Update
   hosts: localhost
   connection: local
   gather_facts: no
@@ -14,7 +14,8 @@
     service_now_instance: "{{ service_now_instance }}"
     service_now_username: "{{ service_now_username }}"
     service_now_password: "{{ service_now_password }}"
-    sctask_id: "{{ sctask_id }}"  # Provide the SC Task ID here
+    sctask_id: "{{ sctask_id }}"
+    state_completed: "3"  # Assuming 3 = Completed
 
   tasks:
     - name: Get Access Token
@@ -72,16 +73,6 @@
       debug:
         var: account_update
 
----
-- name: Update SC Task State to Completed
-  hosts: localhost
-  connection: local
-  gather_facts: no
-
-  vars:
-    state_completed: "3"  # Assuming "3" corresponds to "Completed" in ServiceNow
-
-  tasks:
     - name: Search for SC Task using sctask_id
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=sys_id={{ sctask_id }}&sysparm_limit=1"
