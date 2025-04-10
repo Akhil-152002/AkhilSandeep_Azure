@@ -3,11 +3,11 @@
   hosts: localhost
   connection: local
   gather_facts: no
-
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
     enable_account: "{{ tf | bool }}"
     exmp: "{{ user_id }}"
+    # Original credentials retained as requested
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
@@ -15,8 +15,6 @@
     service_now_username: "{{ service_now_username }}"
     service_now_password: "{{ service_now_password }}"
     sctask_id: "{{ sctask_id }}"
-    
-
   tasks:
     - name: Get Access Token
       uri:
@@ -33,15 +31,12 @@
         return_content: yes
       register: token_response
       failed_when: token_response.status != 200
-
     - name: Set access token fact
       set_fact:
         access_token: "{{ token_response.json.access_token }}"
-
     - name: Debug - Show Access Token Status
       debug:
         msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Unsuccessful' }}"
-
     - name: Verify target user exists
       uri:
         url: "{{ graph_api_url }}/users/{{ exmp }}"
@@ -50,12 +45,10 @@
           Authorization: "Bearer {{ access_token }}"
           Content-Type: "application/json"
       register: user_verify
-      failed_when: false
-
+      failed_when: user_verify.status != 200
     - name: Debug - Show user verify result
       debug:
         var: user_verify
-
     - name: Enable or Disable User Account
       uri:
         url: "{{ graph_api_url }}/users/{{ exmp }}"
@@ -67,15 +60,13 @@
           accountEnabled: "{{ enable_account | lower }}"
         body_format: json
       register: account_update
-      failed_when: false
-
+      failed_when: account_update.status not in [200, 204]
     - name: Debug - Show account update response
       debug:
         var: account_update
-
     - name: Search for SC Task using sctask_id
       uri:
-        url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=sys_id={{ sctask_id }}&sysparm_limit=1"
+        url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=number={{ sctask_id }}&sysparm_limit=1"
         method: GET
         user: "{{ service_now_username }}"
         password: "{{ service_now_password }}"
@@ -85,23 +76,20 @@
         return_content: yes
       register: sctask_search
       failed_when: sctask_search.status != 200
-
     - name: Debug - Show SC Task Search result
       debug:
         var: sctask_search.json.result
-
     - name: Set sys_id from SC Task search result
       set_fact:
         sctask_sys_id: "{{ sctask_search.json.result[0].sys_id }}"
       when: sctask_search.json.result | length > 0
-
     - name: Prepare request body to update SC Task state to Closed Complete
       set_fact:
         request_body: >
           {
-            "state": "{{ 3 }}"
+            "state": "3",
+            "close_notes": "Automated closure: Azure AD account {{ 'enabled' if enable_account else 'disabled' }} for {{ exmp }}"
           }
-
     - name: Update SC Task state to Closed Complete in ServiceNow
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/sc_task/{{ sctask_sys_id }}"
@@ -116,7 +104,6 @@
         status_code: [200, 204]
       when: sctask_sys_id is defined
       register: update_response
-
     - name: Debug - Show Update Response
       debug:
         msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
