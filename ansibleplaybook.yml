@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   gather_facts: no
- 
+
   vars:
     graph_api_url: "https://graph.microsoft.com/v1.0"
     enable_account: "{{ enable_account | bool }}"  # Convert string 'true'/'false' to boolean
@@ -11,7 +11,7 @@
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
     user_principal_name: "{{ user_principal_name }}"
- 
+
   tasks:
     - name: Get Access Token
       uri:
@@ -28,15 +28,15 @@
         return_content: yes
       register: token_response
       failed_when: token_response.status != 200
- 
+
     - name: Set access token fact
       set_fact:
         access_token: "{{ token_response.json.access_token }}"
- 
+
     - name: Debug - Show Access Token Retrieval Status
       debug:
         msg: "Access Token Retrieval: {{ 'Successful' if token_response.status == 200 else 'Failed' }}"
- 
+
     - name: Check if user already exists
       uri:
         url: "{{ graph_api_url }}/users?$filter=userPrincipalName%20eq%20'{{ user_principal_name }}'"
@@ -47,20 +47,20 @@
       register: user_lookup
       failed_when: user_lookup.status == 404
       changed_when: false
- 
+
     - name: Fail if User Doesn't Exist
       fail:
         msg: "User {{ user_principal_name }} does not exist in Azure AD."
       when: user_lookup.status == 404
- 
+
     - name: Extract User ID
       set_fact:
         user_id: "{{ user_lookup.json.value[0].id }}"
- 
+
     - name: Debug - Show Retrieved User ID
       debug:
         msg: "User {{ user_principal_name }} found with ID: {{ user_id }}"
- 
+
     - name: Enable or Disable User Account
       uri:
         url: "{{ graph_api_url }}/users/{{ user_id }}"
@@ -74,8 +74,93 @@
       register: account_update
       failed_when: account_update.status not in [200, 204]
       changed_when: account_update.status == 200
- 
+
     - name: Debug - Show Account Update Response
       debug:
-        msg: "User {{ user_principal_name }} account status updated to {{ enable_account }
-        
+        msg: "User {{ user_principal_name }} account status updated to {{ enable_account }}"
+
+- name: Update ServiceNow Incident or Request
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    instance: "dev247928.service-now.com"
+    username: "admin"
+    password: "%ml4Vs9RXE/s"
+
+    # User inputs
+    ticket_type: "incident"  # Change to "request" for updating a request
+    sys_id: "107d22668310a210d081f696feaad302"  # Provide the existing ticket sys_id
+    short_description: "Updated Ticket Description"
+    description: "Updated ticket details."
+    priority: "3"
+    impact: "2"
+    urgency: "2"
+    state: "2"  # 1 = New, 2 = In Progress, etc.
+    assigned_to: "admin"
+    assignment_group: "IT Support"
+    comments: "Ticket is being worked on."
+    work_notes: "Engineer started troubleshooting."
+    due_date: "2025-03-20"
+    escalation: "1"
+    request_state: "approved"
+    stage: "fulfilling"
+    approval: "approved"
+    category: "network"
+    service_offering: "IT Helpdesk"
+    contact_type: "email"
+
+  tasks:
+    - name: Determine table based on ticket_type
+      set_fact:
+        table_name: "{{ 'incident' if ticket_type == 'incident' else 'sc_request' }}"
+
+    - name: Prepare request body for update
+      set_fact:
+        request_body: >-
+          {%- if ticket_type == 'incident' -%}
+          {
+            "short_description": "{{ short_description }}",
+            "description": "{{ description }}",
+            "impact": "{{ impact }}",
+            "urgency": "{{ urgency }}",
+            "priority": "{{ priority }}",
+            "comments": "{{ comments }}",
+            "work_notes": "{{ work_notes }}",
+            "state": "{{ state }}"
+          }
+          {%- else -%}
+          {
+            "short_description": "{{ short_description }}",
+            "description": "{{ description }}",
+            "priority": "{{ priority }}",
+            "assigned_to": "{{ assigned_to }}",
+            "assignment_group": "{{ assignment_group }}",
+            "comments": "{{ comments }}",
+            "work_notes": "{{ work_notes }}",
+            "request_state": "{{ request_state }}",
+            "stage": "{{ stage }}",
+            "approval": "{{ approval }}",
+            "category": "{{ category }}",
+            "service_offering": "{{ service_offering }}",
+            "contact_type": "{{ contact_type }}"
+          }
+          {%- endif -%}
+
+    - name: Update Incident or Request in ServiceNow
+      ansible.builtin.uri:
+        url: "https://{{ instance }}/api/now/table/{{ table_name }}/{{ sys_id }}"
+        method: PATCH
+        user: "{{ username }}"
+        password: "{{ password }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ request_body }}"
+        status_code: [200, 204]
+      register: response
+
+    - name: Show Updated Ticket Details
+      debug:
+        msg: "{{ response.json }}"
