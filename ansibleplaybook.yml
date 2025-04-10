@@ -15,7 +15,7 @@
     service_now_username: "{{ service_now_username }}"
     service_now_password: "{{ service_now_password }}"
     sctask_id: "{{ sctask_id }}"
-    state_completed: "3"  # Assuming 3 = Completed
+    state_closed_complete: "3"  # Correct value for 'Closed Complete'
 
   tasks:
     - name: Get Access Token
@@ -95,14 +95,14 @@
         sctask_sys_id: "{{ sctask_search.json.result[0].sys_id }}"
       when: sctask_search.json.result | length > 0
 
-    - name: Prepare request body to update SC Task state to Completed
+    - name: Prepare request body to update SC Task state to Closed Complete
       set_fact:
         request_body: >
           {
-            "state": "{{ state_completed }}"
+            "state": "{{ state_closed_complete }}"
           }
 
-    - name: Update SC Task state to Completed in ServiceNow
+    - name: Update SC Task state to Closed Complete in ServiceNow
       uri:
         url: "https://{{ service_now_instance }}/api/now/table/sc_task/{{ sctask_sys_id }}"
         method: PATCH
