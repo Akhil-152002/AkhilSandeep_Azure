@@ -11,29 +11,10 @@
     tenant_id: "195e8969-c853-47b4-83d0-36e044d83923"
     client_id: "e2e46ae3-2dee-4eed-a074-ddffd760ab2b"
     client_secret: "PQZ8Q~XSmMsU4dbgk2KyWMHK1h8X7ciD~H.1_csi"
-    INCIDENT_NUMBER: "{{ INCIDENT_NUMBER }}"
     service_now_instance: "{{ service_now_instance }}"
     service_now_username: "{{ service_now_username }}"
-    service_now_password: "{{ service_now_password }}"
-
-    # ServiceNow ticket info
-    ticket_type: "incident"  # or "request"
-    short_description: "Updated Ticket Description"
-    description: "Updated ticket details."
-    priority: "3"
-    impact: "2"
-    urgency: "2"
-    state: "2"
-    assigned_to: "admin"
-    assignment_group: "IT Support"
-    comments: "Ticket is being worked on."
-    work_notes: "Engineer started troubleshooting."
-    request_state: "approved"
-    stage: "fulfilling"
-    approval: "approved"
-    category: "network"
-    service_offering: "IT Helpdesk"
-    contact_type: "email"
+    service_now_password: "{{ service_now_password }}" 
+    sctask_id: "{{ sctask_id }}"  # Provide the SC Task ID here
 
   tasks:
     - name: Get Access Token
@@ -91,15 +72,16 @@
       debug:
         var: account_update
 
-    # --- ServiceNow Section ---
+# --- ServiceNow Section ---
+- name: Update SC Task State to Completed
+  hosts: localhost
+  connection: local
+  gather_facts: no
 
-    - name: Determine table based on ticket_type
-      set_fact:
-        table_name: "{{ 'incident' if ticket_type == 'incident' else 'sc_request' }}"
-
-    - name: Search for ticket using short_description
+  tasks:
+    - name: Search for SC Task using sctask_id
       uri:
-        url: "https://{{ service_now_instance }}/api/now/table/{{ table_name }}?sysparm_query=short_description={{ short_description | urlencode }}&sysparm_limit=1"
+        url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=sys_id={{ sctask_id }}&sysparm_limit=1"
         method: GET
         user: "{{ service_now_username }}"
         password: "{{ service_now_password }}"
@@ -107,53 +89,28 @@
         headers:
           Content-Type: "application/json"
         return_content: yes
-      register: incident_search
-      failed_when: incident_search.status not in [200]
+      register: sctask_search
+      failed_when: sctask_search.status != 200
 
-    - name: Debug - Search results
+    - name: Debug - Show SC Task Search result
       debug:
-        var: incident_search.json.result
+        var: sctask_search.json.result
 
-    - name: Set sys_id from search result
+    - name: Set sys_id from SC Task search result
       set_fact:
-        requested_sys_id: "{{ incident_search.json.result[0].sys_id }}"
-      when: incident_search.json.result | length > 0
+        sctask_sys_id: "{{ sctask_search.json.result[0].sys_id }}"
+      when: sctask_search.json.result | length > 0
 
-    - name: Prepare request body for update
+    - name: Prepare request body to update SC Task state to Completed
       set_fact:
-        request_body: >-
-          {%- if ticket_type == 'incident' -%}
+        request_body: >
           {
-            "short_description": "{{ short_description }}",
-            "description": "{{ description }}",
-            "impact": "{{ impact }}",
-            "urgency": "{{ urgency }}",
-            "priority": "{{ priority }}",
-            "comments": "{{ comments }}",
-            "work_notes": "{{ work_notes }}",
-            "state": "{{ state }}"
+            "state": "{{ closed_complete }}"
           }
-          {%- else -%}
-          {
-            "short_description": "{{ short_description }}",
-            "description": "{{ description }}",
-            "priority": "{{ priority }}",
-            "assigned_to": "{{ assigned_to }}",
-            "assignment_group": "{{ assignment_group }}",
-            "comments": "{{ comments }}",
-            "work_notes": "{{ work_notes }}",
-            "request_state": "{{ request_state }}",
-            "stage": "{{ stage }}",
-            "approval": "{{ approval }}",
-            "category": "{{ category }}",
-            "service_offering": "{{ service_offering }}",
-            "contact_type": "{{ contact_type }}"
-          }
-          {%- endif -%}
 
-    - name: Update Incident or Request in ServiceNow
+    - name: Update SC Task state to Completed in ServiceNow
       uri:
-        url: "https://{{ service_now_instance }}/api/now/table/{{ table_name }}/{{ requested_sys_id }}"
+        url: "https://{{ service_now_instance }}/api/now/table/sc_task/{{ sctask_sys_id }}"
         method: PATCH
         user: "{{ service_now_username }}"
         password: "{{ service_now_password }}"
@@ -163,9 +120,9 @@
         body_format: json
         body: "{{ request_body }}"
         status_code: [200, 204]
-      when: requested_sys_id is defined
-      register: response
+      when: sctask_sys_id is defined
+      register: update_response
 
-    - name: Show Updated Ticket Details
+    - name: Debug - Show Update Response
       debug:
-        msg: "{{ response.json if response.json is defined else 'Update Successful (No body returned)' }}"
+        msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
