@@ -15,6 +15,7 @@
     service_now_instance: "{{ service_now_instance }}"
     service_now_username: "{{ service_now_username }}"
     service_now_password: "{{ service_now_password }}"
+    requested_sys_id: "{{ awx_webhook_payload.sys_id }}"
 
   tasks:
     - name: Get Access Token
