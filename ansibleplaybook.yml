@@ -64,46 +64,46 @@
     - name: Debug - Show account update response
       debug:
         var: account_update
-    - name: Search for SC Task using sctask_id
-      uri:
-        url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=number={{ sctask_id }}&sysparm_limit=1"
-        method: GET
-        user: "{{ service_now_username }}"
-        password: "{{ service_now_password }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-        return_content: yes
-      register: sctask_search
-      failed_when: sctask_search.status != 200
-    - name: Debug - Show SC Task Search result
-      debug:
-        var: sctask_search.json.result
-    - name: Set sys_id from SC Task search result
-      set_fact:
-        sctask_sys_id: "{{ sctask_search.json.result[0].sys_id }}"
-      when: sctask_search.json.result | length > 0
-    - name: Prepare request body to update SC Task state to Closed Complete
-      set_fact:
-        request_body: >
-          {
-            "state": "3",
-            "close_notes": "Automated closure: Azure AD account {{ 'enabled' if enable_account else 'disabled' }} for {{ exmp }}"
-          }
-    - name: Update SC Task state to Closed Complete in ServiceNow
-      uri:
-        url: "https://{{ service_now_instance }}/api/now/table/sc_task/{{ sctask_sys_id }}"
-        method: PATCH
-        user: "{{ service_now_username }}"
-        password: "{{ service_now_password }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ request_body }}"
-        status_code: [200, 204]
-      when: sctask_sys_id is defined
-      register: update_response
-    - name: Debug - Show Update Response
-      debug:
-        msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
+    # - name: Search for SC Task using sctask_id
+    #   uri:
+    #     url: "https://{{ service_now_instance }}/api/now/table/sc_task?sysparm_query=number={{ sctask_id }}&sysparm_limit=1"
+    #     method: GET
+    #     user: "{{ service_now_username }}"
+    #     password: "{{ service_now_password }}"
+    #     force_basic_auth: yes
+    #     headers:
+    #       Content-Type: "application/json"
+    #     return_content: yes
+    #   register: sctask_search
+    #   failed_when: sctask_search.status != 200
+    # - name: Debug - Show SC Task Search result
+    #   debug:
+    #     var: sctask_search.json.result
+    # - name: Set sys_id from SC Task search result
+    #   set_fact:
+    #     sctask_sys_id: "{{ sctask_search.json.result[0].sys_id }}"
+    #   when: sctask_search.json.result | length > 0
+    # - name: Prepare request body to update SC Task state to Closed Complete
+    #   set_fact:
+    #     request_body: >
+    #       {
+    #         "state": "3",
+    #         "close_notes": "Automated closure: Azure AD account {{ 'enabled' if enable_account else 'disabled' }} for {{ exmp }}"
+    #       }
+    # - name: Update SC Task state to Closed Complete in ServiceNow
+    #   uri:
+    #     url: "https://{{ service_now_instance }}/api/now/table/sc_task/{{ sctask_sys_id }}"
+    #     method: PATCH
+    #     user: "{{ service_now_username }}"
+    #     password: "{{ service_now_password }}"
+    #     force_basic_auth: yes
+    #     headers:
+    #       Content-Type: "application/json"
+    #     body_format: json
+    #     body: "{{ request_body }}"
+    #     status_code: [200, 204]
+    #   when: sctask_sys_id is defined
+    #   register: update_response
+    # - name: Debug - Show Update Response
+    #   debug:
+    #     msg: "{{ update_response.json if update_response.json is defined else 'Update Successful (No body returned)' }}"
